@@ -1,5 +1,7 @@
-Lien du dépôt DockerHub (images publiées par le pipeline) :
-https://hub.docker.com/r/<DOCKERHUB_USER>/fastapi/tags
+Lien du dépôt DockerHub (images publiées) :
+https://hub.docker.com/r/adel75/fastapi/tags
 
-# Les images sont taguées avec le SHA court du commit ($CI_COMMIT_SHORT_SHA)
-# et 'latest' (poussé uniquement depuis la branche main).
+# Images publiées :
+#   - adel75/fastapi:latest
+#   - adel75/fastapi:<CI_COMMIT_SHORT_SHA>  (ex. adel75/fastapi:bbc9f2e)
+# Le tag 'latest' n'est poussé que depuis la branche main.

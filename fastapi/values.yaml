@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   # Dépôt DockerHub. Surchargé dans le pipeline par --set image.repository
-  repository: docker.io/<DOCKERHUB_USER>/fastapi
+  repository: docker.io/adel75/fastapi
   pullPolicy: Always
   tag: "latest"
 

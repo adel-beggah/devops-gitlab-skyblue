@@ -1,5 +1,5 @@
-Lien du dépôt GitHub (à rendre public) :
-https://github.com/<VOTRE_COMPTE>/devops-gitlab
+Lien du dépôt GitHub (public) :
+https://github.com/adel-beggah/devops-gitlab-skyblue
 
 # Application d'origine fournie pour l'examen :
 https://github.com/DataScientest/gitlab-app-fastapi
