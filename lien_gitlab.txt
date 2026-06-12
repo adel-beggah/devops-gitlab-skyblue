@@ -1,5 +1,7 @@
-Lien du projet GitLab (pipeline CI/CD) :
+Lien du projet GitLab (PUBLIC — accessible sans authentification) :
 https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue
 
-Pipeline exécuté (PASSED, 7/7 jobs) :
+Pipeline exécuté (PASSED, 7/7 jobs), visible en direct :
 https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue/-/pipelines/2598226038
+
+Environnements (Operate > Environments) : dev, qa, staging, prod
