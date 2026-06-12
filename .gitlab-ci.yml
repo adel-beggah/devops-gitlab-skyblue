@@ -1,30 +1,36 @@
 # =============================================================================
-#  Pipeline CI/CD — SkyBlue IT Limited
-#  Application FastAPI -> image DockerHub -> déploiement Helm sur Kubernetes
+#  Pipeline CI/CD — SkyBlue IT Limited  (application FastAPI)
+#  Cible : GitLab.com + RUNNER AUTO-HÉBERGÉ (exécuteur shell) installé sur la
+#  machine qui héberge le cluster Kubernetes — montage identique au cours
+#  DataScientest (le runner et le cluster sont sur la même machine).
+#
+#  Le runner (tag "skyblue-local") tourne sous l'utilisateur qui dispose de :
+#    - Docker (colima) déjà authentifié sur DockerHub (docker login)
+#    - kubectl/helm + le kubeconfig du cluster kind (contexte kind-skyblue)
+#
 #  Environnements : dev (auto) | qa (auto) | staging (auto) | prod (manuel, main)
+#
+#  ÉQUIVALENT CLOUD (gitlab.com shared runners + cluster cloud) : on utiliserait
+#  image:/services: docker:dind, un "docker login" via les variables CI
+#  DOCKERHUB_USER/DOCKERHUB_TOKEN, et la variable de type File KUBE_CONFIG.
 # =============================================================================
 
+default:
+  tags:
+    - skyblue-local            # s'exécute sur notre runner auto-hébergé
+
 variables:
-  # --- Registre DockerHub -----------------------------------------------------
-  # IMAGE_NAME doit pointer vers votre dépôt DockerHub : <user>/fastapi
-  # DOCKERHUB_USER / DOCKERHUB_TOKEN sont définis dans Settings > CI/CD > Variables
-  IMAGE_NAME: "$DOCKERHUB_USER/fastapi"
-  # --- Namespaces / NodePorts par environnement -------------------------------
-  KUBE_NAMESPACE_DEV: dev
-  KUBE_NAMESPACE_QA: qa
-  KUBE_NAMESPACE_STAGING: staging
-  KUBE_NAMESPACE_PROD: prod
-  NODEPORT_DEV: 30000
-  NODEPORT_QA: 30001
-  NODEPORT_STAGING: 30002
-  NODEPORT_PROD: 30003
-  # IP publique du/des nœud(s) du cluster (pour les URLs d'environnement)
-  CLUSTER_IP: "127.0.0.1"   # <-- remplacer par l'IP de votre VM/cluster
+  IMAGE_NAME: "adel75/fastapi" # dépôt DockerHub
+  KUBE_CONTEXT: "kind-skyblue" # contexte du cluster local
+  NODEPORT_DEV: "30000"
+  NODEPORT_QA: "30001"
+  NODEPORT_STAGING: "30002"
+  NODEPORT_PROD: "30003"
+  CLUSTER_IP: "localhost"
 
 stages:
   - test
   - build
-  - run
   - push
   - deploy_dev
   - deploy_qa
@@ -32,102 +38,61 @@ stages:
   - deploy_prod
 
 # -----------------------------------------------------------------------------
-# 1) TEST : tests unitaires de l'application FastAPI (pytest)
-#    - on installe les deps de l'app + pytest
-#    - httpx est ÉPINGLÉ <0.28 : httpx 0.28 a supprimé le paramètre `app=`,
-#      ce qui casse le TestClient de Starlette 0.22 (vérifié réellement).
-#    - pytest est lancé DEPUIS LA RACINE : le test fait `from .main import app`
-#      (import relatif), donc `app` doit rester un package -> `python -m pytest app/`.
-#      (La variante `cd app/ && pytest` du TP échoue sur cet import relatif.)
+# 1) TEST : tests unitaires FastAPI (venv isolé)
+#    httpx épinglé <0.28 (0.28 supprime le paramètre app= -> casse le TestClient
+#    de Starlette 0.22) ; pytest lancé depuis la racine (import relatif .main).
 # -----------------------------------------------------------------------------
 test:
   stage: test
-  image: python:3.9
-  before_script:
-    - pip install --no-cache-dir -r requirements.txt
-    - pip install --no-cache-dir pytest "httpx<0.28"
   script:
+    - python3 -m venv .venv && . .venv/bin/activate
+    - pip install --quiet --upgrade pip
+    - pip install --quiet -r requirements.txt
+    - pip install --quiet pytest "httpx<0.28"
     - python -m pytest app/ -v
 
 # -----------------------------------------------------------------------------
-# 2) BUILD : construction de l'image Docker, taguée avec le SHA court du commit
+# 2) BUILD : construit l'image, taguée avec le SHA court du commit + latest
 # -----------------------------------------------------------------------------
 build:
   stage: build
-  image: docker:24.0
-  services:
-    - docker:24.0-dind
   script:
     - docker build -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
-    # Sauvegarde de l'image pour la passer au stage suivant
-    - docker save "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" > image.tar
-  artifacts:
-    paths:
-      - image.tar
-    expire_in: 1 hour
 
 # -----------------------------------------------------------------------------
-# 3) RUN : démarre l'image et vérifie un HTTP 200 sur "/" (test fumée)
-# -----------------------------------------------------------------------------
-run:
-  stage: run
-  image: docker:24.0
-  services:
-    - docker:24.0-dind
-  script:
-    - docker load < image.tar
-    - docker run -d -p 80:80 --name fastapi "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - sleep 8
-    - apk add --no-cache curl
-    - 'curl -sf -o /dev/null -w "HTTP %{http_code}\n" http://docker:80/ || curl -sf -o /dev/null -w "HTTP %{http_code}\n" http://localhost:80/'
-    - docker rm -f fastapi
-
-# -----------------------------------------------------------------------------
-# 4) PUSH : authentification DockerHub et publication de l'image
+# 3) PUSH : publie l'image sur DockerHub (le runner est déjà authentifié)
+#    latest n'est poussé que depuis main.
 # -----------------------------------------------------------------------------
 push:
   stage: push
-  image: docker:24.0
-  services:
-    - docker:24.0-dind
-  before_script:
-    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
   script:
-    - docker load < image.tar
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    # Le tag latest n'est poussé que depuis la branche principale
-    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:latest"; docker push "$IMAGE_NAME:latest"; fi
+    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then docker push "$IMAGE_NAME:latest"; fi
 
 # -----------------------------------------------------------------------------
-# Template de déploiement Helm réutilisé par chaque environnement.
-#   - récupère le kubeconfig depuis la variable de type File KUBE_CONFIG
-#   - helm upgrade --install (idempotent) dans le namespace cible
+# Déploiement Helm réutilisable. helm upgrade --install (idempotent) dans le
+# namespace cible ; l'image publique est tirée depuis DockerHub par le cluster.
 # -----------------------------------------------------------------------------
 .deploy_template: &deploy_template
-  image: dtzar/helm-kubectl:3.14
-  before_script:
-    - mkdir -p ~/.kube
-    - cp "$KUBE_CONFIG" ~/.kube/config
-    - export KUBECONFIG=~/.kube/config
   script:
     - >
       helm upgrade --install fastapi ./fastapi
+      --kube-context "$KUBE_CONTEXT"
       --namespace "$NAMESPACE"
       --values ./fastapi/values-$NAMESPACE.yaml
-      --set image.repository="docker.io/$IMAGE_NAME"
+      --set image.repository="$IMAGE_NAME"
       --set image.tag="$CI_COMMIT_SHORT_SHA"
       --set service.nodeport="$NODEPORT"
-      --wait
+      --wait --timeout 120s
+    - kubectl --context "$KUBE_CONTEXT" -n "$NAMESPACE" rollout status deploy/fastapi --timeout=120s
 
 # -----------------------------------------------------------------------------
-# 5) DÉPLOIEMENTS automatiques : dev -> qa -> staging
+# 4) DÉPLOIEMENTS automatiques : dev -> qa -> staging
 # -----------------------------------------------------------------------------
 deploy_dev:
   <<: *deploy_template
   stage: deploy_dev
-  variables:
-    NAMESPACE: dev
-    NODEPORT: $NODEPORT_DEV
+  variables: { NAMESPACE: dev, NODEPORT: "30000" }
   environment:
     name: dev
     url: http://$CLUSTER_IP:$NODEPORT_DEV
@@ -135,9 +100,7 @@ deploy_dev:
 deploy_qa:
   <<: *deploy_template
   stage: deploy_qa
-  variables:
-    NAMESPACE: qa
-    NODEPORT: $NODEPORT_QA
+  variables: { NAMESPACE: qa, NODEPORT: "30001" }
   environment:
     name: qa
     url: http://$CLUSTER_IP:$NODEPORT_QA
@@ -145,28 +108,22 @@ deploy_qa:
 deploy_staging:
   <<: *deploy_template
   stage: deploy_staging
-  variables:
-    NAMESPACE: staging
-    NODEPORT: $NODEPORT_STAGING
+  variables: { NAMESPACE: staging, NODEPORT: "30002" }
   environment:
     name: staging
     url: http://$CLUSTER_IP:$NODEPORT_STAGING
 
 # -----------------------------------------------------------------------------
-# 6) DÉPLOIEMENT PRODUCTION : MANUEL et UNIQUEMENT sur la branche main
-#    -> la combinaison rules + when:manual répond aux deux exigences de l'énoncé.
+# 5) DÉPLOIEMENT PRODUCTION : MANUEL et UNIQUEMENT sur la branche main
 # -----------------------------------------------------------------------------
 deploy_prod:
   <<: *deploy_template
   stage: deploy_prod
-  variables:
-    NAMESPACE: prod
-    NODEPORT: $NODEPORT_PROD
+  variables: { NAMESPACE: prod, NODEPORT: "30003" }
   environment:
     name: prod
     url: http://$CLUSTER_IP:$NODEPORT_PROD
   rules:
-    # Le job n'apparaît QUE sur la branche main, et reste à déclencher à la main.
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
     - when: never
