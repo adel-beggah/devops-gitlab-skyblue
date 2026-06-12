@@ -1,0 +1,42 @@
+# Manifeste DÉPLOIEMENT — équivalent K8s du service "fastapi" de docker-compose.
+# docker-compose : build/image + ports 80:80  ==>  Deployment + containerPort 80.
+# (Version "brute" pédagogique ; en production on déploie via le chart Helm.)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  labels:
+    app: fastapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      # Secret d'authentification au registre (DockerHub privé).
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: fastapi
+          # Remplacer <DOCKERHUB_USER> par votre identifiant DockerHub.
+          image: docker.io/<DOCKERHUB_USER>/fastapi:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10

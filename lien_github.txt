@@ -1,0 +1,5 @@
+Lien du dépôt GitHub (à rendre public) :
+https://github.com/<VOTRE_COMPTE>/devops-gitlab
+
+# Application d'origine fournie pour l'examen :
+https://github.com/DataScientest/gitlab-app-fastapi

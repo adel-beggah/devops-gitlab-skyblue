@@ -1,0 +1,4 @@
+# Surcharge environnement QA
+replicaCount: 1
+service:
+  nodeport: 30001

@@ -1,0 +1,60 @@
+############################################################
+#  PREUVES D'EXECUTION - SkyBlue IT / FastAPI CI-CD       #
+#  Cluster Kubernetes local (kind) - 2026-06-12T22:14:38Z
+############################################################
+
+===== 1. VERSIONS DES OUTILS =====
+Docker version 29.5.3, build d1c06ef6b4
+Client Version: v1.36.2
+v4.2.1+gd591a19
+kind version 0.32.0
+
+===== 2. CLUSTER & NOEUDS =====
+NAME STATUS VERSION
+skyblue-control-plane Ready v1.36.1
+
+===== 3. LES 4 NAMESPACES (environnements) =====
+NAME      STATUS   AGE
+dev       Active   2m5s
+qa        Active   2m5s
+staging   Active   2m5s
+prod      Active   2m5s
+
+===== 4. RELEASES HELM (1 par environnement) =====
+NAME   	NAMESPACE	REVISION	UPDATED                              	STATUS  	CHART        	APP VERSION
+fastapi	dev      	1       	2026-06-13 00:13:09.461875 +0200 CEST	deployed	fastapi-0.1.0	1.0.0      
+NAME   	NAMESPACE	REVISION	UPDATED                              	STATUS  	CHART        	APP VERSION
+fastapi	qa       	1       	2026-06-13 00:13:20.146321 +0200 CEST	deployed	fastapi-0.1.0	1.0.0      
+NAME   	NAMESPACE	REVISION	UPDATED                              	STATUS  	CHART        	APP VERSION
+fastapi	staging  	1       	2026-06-13 00:13:31.176499 +0200 CEST	deployed	fastapi-0.1.0	1.0.0      
+NAME   	NAMESPACE	REVISION	UPDATED                              	STATUS  	CHART        	APP VERSION
+fastapi	prod     	1       	2026-06-13 00:13:42.215013 +0200 CEST	deployed	fastapi-0.1.0	1.0.0      
+
+===== 5. DEPLOIEMENTS & REPLICAS PAR ENV =====
+NAMESPACE   NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+dev         fastapi   1/1     1            1           90s
+prod        fastapi   2/2     2            2           57s
+qa          fastapi   1/1     1            1           79s
+staging     fastapi   2/2     2            2           68s
+
+===== 6. PODS =====
+NAMESPACE   NAME                       READY   STATUS    RESTARTS   AGE
+dev         fastapi-548fc7f5fc-9r24w   1/1     Running   0          90s
+prod        fastapi-7c78d64c-d9p52     1/1     Running   0          57s
+prod        fastapi-7c78d64c-w6pxx     1/1     Running   0          57s
+qa          fastapi-548fc7f5fc-bl7vm   1/1     Running   0          79s
+staging     fastapi-548fc7f5fc-fnxwj   1/1     Running   0          68s
+staging     fastapi-548fc7f5fc-xpkfd   1/1     Running   0          68s
+
+===== 7. SERVICES NODEPORT =====
+NAMESPACE   NAME      TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+dev         fastapi   NodePort   10.96.102.88   <none>        80:30000/TCP   90s
+prod        fastapi   NodePort   10.96.23.35    <none>        80:30003/TCP   57s
+qa          fastapi   NodePort   10.96.199.53   <none>        80:30001/TCP   79s
+staging     fastapi   NodePort   10.96.215.53   <none>        80:30002/TCP   68s
+
+===== 8. TEST HTTP DE CHAQUE ENVIRONNEMENT =====
+[dev] http://localhost:30000/  ->  HTTP 200  |  body: {"Hello":"WELCOME TO DATASCIENTEST MICRO SERVICE"}
+[qa] http://localhost:30001/  ->  HTTP 200  |  body: {"Hello":"WELCOME TO DATASCIENTEST MICRO SERVICE"}
+[staging] http://localhost:30002/  ->  HTTP 200  |  body: {"Hello":"WELCOME TO DATASCIENTEST MICRO SERVICE"}
+[prod] http://localhost:30003/  ->  HTTP 200  |  body: {"Hello":"WELCOME TO DATASCIENTEST MICRO SERVICE"}

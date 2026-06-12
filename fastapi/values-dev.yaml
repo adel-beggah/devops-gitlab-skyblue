@@ -1,0 +1,4 @@
+# Surcharge environnement DEV
+replicaCount: 1
+service:
+  nodeport: 30000

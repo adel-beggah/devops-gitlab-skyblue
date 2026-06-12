@@ -1,0 +1,69 @@
+# Valeurs PAR DÉFAUT du chart. Elles sont surchargées :
+#   - par les fichiers values-<env>.yaml (un par environnement)
+#   - et/ou par les flags --set du pipeline (image.tag, service.nodeport...)
+replicaCount: 1
+
+image:
+  # Dépôt DockerHub. Surchargé dans le pipeline par --set image.repository
+  repository: docker.io/<DOCKERHUB_USER>/fastapi
+  pullPolicy: Always
+  tag: "latest"
+
+# Secret permettant à K8s de s'authentifier sur le DockerHub privé.
+imagePullSecrets:
+  - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: NodePort
+  port: 80
+  nodeport: 30000     # surchargé par environnement / par --set service.nodeport
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

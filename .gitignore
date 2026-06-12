@@ -1,0 +1,5 @@
+node_modules
+# Livrables / artefacts (hors dépôt)
+*.zip
+PREUVES_EXECUTION.pdf
+captures_gitlab_ci.pdf

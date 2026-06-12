@@ -1,0 +1,6 @@
+apiVersion: v2
+name: fastapi
+description: Chart Helm de déploiement de l'application FastAPI de SkyBlue IT Limited
+type: application
+version: 0.1.0          # version du chart
+appVersion: "1.0.0"     # version de l'application

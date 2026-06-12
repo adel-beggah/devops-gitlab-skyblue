@@ -1,0 +1,4 @@
+# Surcharge environnement STAGING
+replicaCount: 2
+service:
+  nodeport: 30002

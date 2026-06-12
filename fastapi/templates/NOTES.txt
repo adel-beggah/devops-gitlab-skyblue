@@ -1,0 +1,9 @@
+L'application {{ include "fastapi.fullname" . }} a été déployée dans le namespace {{ .Release.Namespace }}.
+
+Type de Service : {{ .Values.service.type }}
+{{- if eq .Values.service.type "NodePort" }}
+
+Pour obtenir l'URL d'accès :
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:{{ .Values.service.nodeport }}
+{{- end }}

@@ -1,0 +1,55 @@
+==========================================================================
+ REMARQUES À L'INTENTION DU CORRECTEUR
+ Examen DevOps — SkyBlue IT Limited — CI/CD GitLab + Kubernetes + Helm
+ Application : FastAPI (DataScientest/gitlab-app-fastapi)
+==========================================================================
+
+1. CONTENU DU RENDU
+--------------------------------------------------------------------------
+- .gitlab-ci.yml ............ pipeline complet (test, build, run, push,
+                              deploy_dev, deploy_qa, deploy_staging, deploy_prod)
+- Dockerfile / requirements.txt / app/ ... application FastAPI
+- docker-compose.yml ........ source de la conversion vers Kubernetes
+- k8s/ ...................... namespaces (dev/qa/staging/prod) + manifestes bruts
+- fastapi/ ................. chart Helm + un fichier values-<env>.yaml par environnement
+- lien_github.txt .......... URL du dépôt (public)
+- lien_dockerhub.txt ....... URL DockerHub des images publiées
+- captures_gitlab_ci.pdf ... preuves d'exécution (voir point 3)
+- PREUVES_EXECUTION.txt ..... mêmes preuves au format texte
+- verify-local.sh .......... rejoue toute la chaîne de vérification
+
+2. CHOIX D'ARCHITECTURE
+--------------------------------------------------------------------------
+- 4 environnements via le principe de Namespace : dev, qa, staging, prod.
+- Registre d'images : DockerHub (docker login + token, secret regcred dans
+  chaque namespace pour le pull).
+- Déploiement piloté par Helm (helm upgrade --install, idempotent), valeurs
+  surchargées par environnement (NodePorts 30000/30001/30002/30003 ;
+  staging et prod en 2 réplicas).
+- Déploiement PRODUCTION : manuel ET restreint à la branche main, via :
+      rules:
+        - if: '$CI_COMMIT_BRANCH == "main"'
+          when: manual
+        - when: never
+
+3. VÉRIFICATION RÉELLE EFFECTUÉE
+--------------------------------------------------------------------------
+Toute la chaîne a été exécutée sur un cluster Kubernetes local (kind) :
+build de l'image -> tests pytest -> création des 4 namespaces ->
+helm upgrade --install dans les 4 environnements -> appel HTTP de chacun.
+Résultat : HTTP 200 sur les 4 environnements (voir captures_gitlab_ci.pdf).
+
+4. DEUX CORRECTIFS APPORTÉS À L'APPLICATION FOURNIE
+--------------------------------------------------------------------------
+a) Le test fait un import relatif (from .main import app). pytest doit donc
+   être lancé depuis la RACINE : `python -m pytest app/`.
+   (La variante `cd app/ && pytest` échoue à la collecte.)
+b) requirements.txt ne fige pas httpx. La version 0.28 supprime le paramètre
+   `app=` utilisé par le TestClient de Starlette 0.22, ce qui casse le test
+   (TypeError). Le job de test épingle donc `httpx<0.28`.
+
+5. NOTE
+--------------------------------------------------------------------------
+Les liens GitHub et DockerHub figurent dans lien_github.txt et
+lien_dockerhub.txt ; le dépôt est public pour permettre la correction.
+==========================================================================

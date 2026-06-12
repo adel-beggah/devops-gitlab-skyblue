@@ -1,0 +1,20 @@
+# docker-compose.yml — point de départ fourni avec l'application FastAPI.
+# C'est CE fichier que l'on "traduit" en manifestes Kubernetes (dossier k8s/)
+# puis en chart Helm (dossier fastapi/).
+# Aligné sur le Dockerfile réel : WORKDIR /code, uvicorn sur le port 80.
+version: "3.8"
+
+services:
+  fastapi:
+    build: .
+    image: fastapi:latest
+    container_name: fastapi
+    ports:
+      - "80:80"          # uvicorn écoute sur le port 80 dans le conteneur
+    restart: unless-stopped
+    healthcheck:
+      # python:3.9 ne contient pas curl -> sonde via urllib
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:80/').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
