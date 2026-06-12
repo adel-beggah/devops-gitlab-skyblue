@@ -3,3 +3,4 @@ node_modules
 *.zip
 PREUVES_EXECUTION.pdf
 captures_gitlab_ci.pdf
+RESULTATS_GITLAB_CI.pdf

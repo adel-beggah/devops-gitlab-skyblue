@@ -1,0 +1,10 @@
+[init]
+	defaultBranch = none
+[fetch]
+	recurseSubmodules = false
+[credential]
+	interactive = never
+[gc]
+	autoDetach = false
+[include]
+	path = /Users/adelbeggah/skyblue-devops/builds/6PNsHLtXe/0/adel-beggah-group/devops-gitlab-skyblue.tmp/.gitlab-runner.ext.conf

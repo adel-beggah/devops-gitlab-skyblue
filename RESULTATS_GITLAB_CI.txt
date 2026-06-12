@@ -1,0 +1,51 @@
+############################################################################
+#  RÉSULTATS GITLAB CI/CD — SkyBlue IT Limited
+#  Projet  : adel-beggah-group/devops-gitlab-skyblue
+#  Pipeline: #2598226038  —  branche main  —  STATUT : PASSED (7/7 jobs)
+#  Runner  : self-hosted "skyblue-local kind runner (mac)" (exécuteur shell)
+############################################################################
+
+URLS
+  GitLab  : https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue
+  Pipeline: https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue/-/pipelines/2598226038
+  GitHub  : https://github.com/adel-beggah/devops-gitlab-skyblue
+  DockerHub: https://hub.docker.com/r/adel75/fastapi/tags
+
+JOBS DU PIPELINE  (tous "success")
+  Stage          Job                     Job ID         Durée
+  -------------  ----------------------  -------------  --------
+  test           test                    14837496559    17.1 s
+  build          build                   14837496560     1.8 s
+  push           push                    14837496561     4.9 s
+  deploy_dev     deploy_dev  (auto)      14837496562    13.8 s
+  deploy_qa      deploy_qa   (auto)      14837496563     3.8 s
+  deploy_staging deploy_staging (auto)   14837496564     6.6 s
+  deploy_prod    deploy_prod (MANUEL)    14837496565    14.7 s   <- déclenché à la main, main uniquement
+
+IMAGE PUBLIÉE SUR DOCKERHUB
+  adel75/fastapi:e3443697   (tag = SHA du commit GitLab)
+  adel75/fastapi:latest
+  digest sha256:fde4629e29ead00f38f7781bb39409fd40166ff9fbc5f9ede3e7d550c89337b7
+
+ENVIRONNEMENTS GITLAB (Operate > Environments) — 4 actifs, déploiements "Success"
+  dev      -> NodePort 30000
+  qa       -> NodePort 30001
+  staging  -> NodePort 30002
+  prod     -> NodePort 30003
+
+ÉTAT DU CLUSTER KUBERNETES (déployé par le pipeline, contexte kind-skyblue)
+  NAMESPACE   DEPLOIEMENT   READY
+  dev         fastapi       1/1
+  qa          fastapi       1/1
+  staging     fastapi       2/2   (2 réplicas via values-staging.yaml)
+  prod        fastapi       2/2   (2 réplicas via values-prod.yaml)
+  Test HTTP des 4 NodePorts : HTTP 200 (voir PREUVES_EXECUTION.pdf)
+
+POINTS CLÉS DEMANDÉS PAR L'ÉNONCÉ — VÉRIFIÉS
+  [x] 4 environnements via Namespaces : dev, qa, staging, prod
+  [x] Images stockées sur DockerHub
+  [x] .gitlab-ci.yml définissant l'ensemble des jobs
+  [x] Manifestes Kubernetes + chart Helm (générés depuis docker-compose.yml)
+  [x] Déploiement prod MANUEL et uniquement sur la branche main
+  [x] Automatisation complète via GitLab CI (pipeline vert de bout en bout)
+############################################################################

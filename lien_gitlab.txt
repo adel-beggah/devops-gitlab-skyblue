@@ -1,0 +1,5 @@
+Lien du projet GitLab (pipeline CI/CD) :
+https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue
+
+Pipeline exécuté (PASSED, 7/7 jobs) :
+https://gitlab.com/adel-beggah-group/devops-gitlab-skyblue/-/pipelines/2598226038
